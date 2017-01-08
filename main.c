@@ -5,10 +5,11 @@
 void count(void* args)
 {
 	int to = *(int*)args;
+	int thrice = to * 3;
 	printf("Koro started with: %d\n", to);
-	kkr_yield(&to);
+	kkr_yield(&thrice);
 
-	for(int i = 1; i < to; ++i)
+	for(int i = 0; i < to; ++i)
 	{
 		int* num = kkr_yield(&i);
 		printf("Koro received: %d\n", *num);
