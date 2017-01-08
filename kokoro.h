@@ -1,6 +1,35 @@
 #ifndef KOKORO_H
 #define KOKORO_H
 
+/**
+ * Do this:
+ *
+ *     #define KOKORO_IMPLEMENTATION
+ *
+ * before you include this file in _one_ C file to create the implementation.
+ *
+ * This library is designed for the following scenario:
+ *
+ * - A scheduler loop manages multiple coroutine.
+ * - Coroutines can only yield back to the scheduler loop.
+ *
+ * A few assumptions about the runtime:
+ *
+ * - The stack is a contiguous area of memory.
+ * - The stack grows in a single direction (either up or down but not both).
+ * - Return addresses of function calls are stored in the stack.
+ * - `void*` has the strictest alignment (ignoring `long double`).
+ *
+ * Notes on value passing between kkr_yield and kkr_resume:
+ *
+ * The argument `val` _must_ satisfy one of the following condition:
+ *
+ * - It points to heap-allocated memory.
+ * - It points to a primitive value (int, char, long, ...) on the stack.
+ * - It points to a pointer on the stack which points to heap-allocated memory.
+ * - It points to a struct which contains no pointers to the stack.
+ */
+
 #include <setjmp.h>
 
 typedef void(*kokoro_entry_t)(void* args);
@@ -23,11 +52,41 @@ typedef struct kokoro_s
 	kokoro_stack_t* stack;
 } kokoro_t;
 
+/**
+ * Spawn a coroutine and wait for it to yield.
+ *
+ * @param koro pointer to a stack or heap allocated kokoro_t instance.
+ * @param entry entry point to the coroutine.
+ * @param args arguments to pass to the coroutine.
+ * @return the value passed to kkr_yield inside the coroutine.
+ */
 void* kkr_spawn(kokoro_t* koro, kokoro_entry_t entry, void* args);
+
+/**
+ * Cancel a suspended coroutine.
+ * @param koro the coroutine to cancel.
+ */
 void kkr_cancel(kokoro_t* koro);
-void* kkr_resume(kokoro_t* koro, void* val);
+
+/**
+ * Resume a suspended coroutine.
+ * @param koro the coroutine to resume.
+ * @param val the value that kkr_yield will return.
+ * @return the value passed to kkr_yield or NULL if the coroutine stopped.
+ */
+void* kkr_resume(kokoro_t* koro, void* val); //TODO: allow kkr_yield to return NULL
+
+/**
+ * Suspend the current coroutine.
+ * @param val the value that kkr_resume will return.
+ * @return the value passed to kkr_resume.
+ */
 void* kkr_yield(void* val);
-kokoro_status_t kkr_status(kokoro_t* koro);
+
+/**
+ * Not implemented
+ */
+kokoro_status_t kkr_status(kokoro_t* koro); //TODO: implement
 
 #ifdef KOKORO_IMPLEMENTATION
 
@@ -46,6 +105,7 @@ struct kokoro_stack_s
 	char data[];
 };
 
+// TODO: make thread-local
 static kokoro_t* current_koro = NULL;
 static kokoro_stack_t* current_stack = NULL;
 
@@ -59,6 +119,7 @@ static void* kkr_save_context(
 
 	if(stack_size)
 	{
+		//TODO: Do not realloc if there's enough capacity
 		*stackp = realloc(*stackp, sizeof(kokoro_stack_t) + stack_size);
 		(*stackp)->size = stack_size;
 		(*stackp)->min_addr = stack_min;
