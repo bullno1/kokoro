@@ -1,0 +1,6 @@
+#!/bin/sh -e
+
+gcc -Wall -Wextra -Werror -pedantic -fsanitize=undefined -O3 -g main.c -o kokoro && \
+	valgrind --leak-check=full ./kokoro
+clang -Wall -Wextra -Werror -pedantic -fsanitize=undefined -O3 -g main.c -o kokoro && \
+	valgrind --leak-check=full ./kokoro
