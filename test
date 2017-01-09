@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-gcc -Wall -Wextra -Werror -pedantic -fsanitize=undefined -O3 -g test.c -o kokoro-test && \
-	valgrind --leak-check=full ./kokoro-test
-clang -Wall -Wextra -Werror -pedantic -fsanitize=undefined -O3 -g test.c -o kokoro-test && \
-	valgrind --leak-check=full ./kokoro-test
+FLAGS="-Wall -Wextra -Werror -pedantic -fno-sanitize-recover=undefined -fsanitize=undefined -fsanitize=address -O3 -g"
+
+gcc ${FLAGS} test.c -o kokoro-test && ASAN_OPTIONS="suppressions=asan.supp" ./kokoro-test
+clang ${FLAGS} test.c -o kokoro-test && ASAN_OPTIONS="replace_intrin=0,suppressions=asan.supp" ./kokoro-test
