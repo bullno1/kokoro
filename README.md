@@ -4,4 +4,4 @@
 
 `kokoro` is an attempt at creating a coroutine library using only functions provided by the standard library.
 
-Refer to [main.c](main.c) for an example.
+Refer to [test.c](test.c) for an example.
